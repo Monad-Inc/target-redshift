@@ -254,6 +254,7 @@ class DbSync:
 
         self.s3 = aws_session.client('s3')
         self.skip_updates = self.connection_config.get('skip_updates', False)
+        self.lock_transaction = self.connection_config.get('lock_transaction', False)
 
         self.schema_name = None
         self.grantees = None
@@ -416,6 +417,9 @@ class DbSync:
 
         with self.open_connection() as connection:
             with connection.cursor(cursor_factory=psycopg2.extras.DictCursor) as cur:
+                if self.lock_transaction:
+                    # Lock automatically released at end of transaction
+                    cur.execute("LOCK {};".format(target_table))
                 inserts = 0
                 updates = 0
 
